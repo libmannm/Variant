@@ -167,6 +167,3 @@ class filtering():
 
     def returner(self):
         return(self.df)
-    
-
-filterer("D:\\Research\\Kaiyo\\Code\\Variants\\temp_data\\")
