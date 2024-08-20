@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 19 20:45:44 2024
-
-@author: avrbe
-"""
-
 import os
 import json
 import pandas as pd
@@ -32,7 +25,7 @@ class Process():
             
             self.ID = str(row[0])+row[1]
             
-            self.key_list = ["750 - 800","750 - 400","750 - 200","1000 - 800","1000 - 400","1000 - 200"]
+            #self.key_list = ["750 - 800","750 - 400","750 - 200","1000 - 800","1000 - 400","1000 - 200"]
             
             self.data[self.ID] = {"750 - 800":{"times":{}},
                               "750 - 400":{"times":{}},
@@ -47,7 +40,7 @@ class Process():
             self.data_array = pd.read_csv(data_path, usecols=["Timestamp","Pupil"]).to_numpy()
             self.data_array = np.hstack((np.arange(self.data_array.shape[0]).reshape(-1,1), self.data_array))
             
-            self.timestamp_times(ts_path)  #Gathers the beginning and end times for each condition
+            self.key_list = self.timestamp_times(ts_path)  #Gathers the beginning and end times for each condition
             prev_key = ""
             for key in self.key_list:
                 self.find_timestamps(key, prev_key)  #Finds all relevant indices given the times gathered previously
@@ -118,10 +111,19 @@ class Process():
         
         timestamp = timestamp[(timestamp[:,0]*0 == 0) & (timestamp[:,2] != "None")]
         
+        key_list = []
+        ISI = 0
+        stimDur = 0
+        for row in timestamp:
+            if row[0] != ISI or row[1] != stimDur:
+                ISI = int(row[0])
+                stimDur = int(row[1])
+                key_list.append(f"{ISI} - {stimDur}")
+        
         global timestamp2
         timestamp2 = timestamp
         
-        for key in self.key_list:
+        for key in key_list:
             ISI = int(key.split(" - ")[0])
             stimDur = int(key.split(" - ")[1])
 
@@ -131,6 +133,8 @@ class Process():
             
             self.data[self.ID][key]["times"]["start_time"] = np.min(timestamp_subset[:,2].astype(float))*1000
             self.data[self.ID][key]["times"]["end_time"] = np.max(timestamp_subset[:,3].astype(float))*1000
+    
+        return key_list    
     
     def find_timestamps(self, key, prev_key):        
         start_time = self.data[self.ID][key]["times"]["start_time"]
@@ -166,4 +170,4 @@ class Process():
                         self.data[self.ID][key]["times"]["end_check"] = self.data_array[int(row[0]),1]
                         break
         
-A = Process("D:/Research/Kaiyo/Code/Variants/Data/", "D:/Research/Kaiyo/Code/Variants/Data/Timestamps/", "D:/Research/Kaiyo/Code/Variants/Results/", 23)
+A = Process("M:/Research/Kaiyo/Code/Variants/Data/", "M:/Research/Kaiyo/Code/Variants/Data/Timestamps/", "M:/Research/Kaiyo/Code/Variants/Results/", 23)
