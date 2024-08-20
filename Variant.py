@@ -2,6 +2,7 @@ from datetime import datetime
 
 from Variant_Filter import filterer
 from Variant_Processing import process
+from GazeAOI_Final import VariantFinal
 
 def variant(data_folder, timestamp_folder, results_folder, time, JSON_Path = f"{datetime.now().date()}.json", CSV_Path = f"{datetime.now().date()}.csv"):
     """
@@ -22,8 +23,8 @@ def variant(data_folder, timestamp_folder, results_folder, time, JSON_Path = f"{
     CSV_Path = results_folder + CSV_Path
     
     filterer(data_folder)  ###Creates duplicates of each participant's data that has been reduced to the important features and processed (blinks etc.)
-    process(23, data_folder, JSON_Path) ###From the filtered data, assemble and calculate all interesting data; export into an intermediary JSON
-    VariantFinal(JSON_Path, CSV_Path, data_folder) ###Convert the JSON to a .csv for easier interpretation
+    data = process(23, data_folder, JSON_Path) ###From the filtered data, assemble and calculate all interesting data; export into an intermediary JSON
+    VariantFinal(JSON_Path, CSV_Path, data_folder, data) ###Conzvert the JSON to a .csv for easier interpretation
 
 
 

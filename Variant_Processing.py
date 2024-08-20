@@ -62,11 +62,6 @@ def process(time, data_folder, timestamp_folder, j_path):
             df["Total"][i] = 1 
         else:
             df["Total"][i] = 0
-
-    global data
-    data = df
-    
-    df = df[df["Total"] == 1]
     
     dictionary = {}
     for i in tqdm(range(np.shape(df)[0])): ###This for loop calls the calculations
@@ -75,6 +70,11 @@ def process(time, data_folder, timestamp_folder, j_path):
 
     with open(j_path, "w") as outfile:
         json.dump(dictionary, outfile, indent = 4)
+    
+    
+    return df
+    
+    df = df[df["Total"] == 1]
 
 class VariantProcess():
     def __init__(self, fileID, dataPath, referencePath, output, seconds = 0):

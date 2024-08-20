@@ -13,12 +13,10 @@ class VariantFinal():
         for key in self.data.keys(): ###Another ultimately inelegant solution, but it works
             if self.data[key]["BaselineAve"]["750 - 800"] == [] or self.data[key]["BaselineAve"]["750 - 800"][0]*0 != 0:
                 key_del_list.append(key)
-        print(key_del_list)
+
         for key in key_del_list:
             del self.data[key]
         
-        #global data
-        #data = self.data
         partList = list(self.data.keys())
 
         self.df = pd.DataFrame()
@@ -33,7 +31,6 @@ class VariantFinal():
                 
                 self.partID[idx] = part
                 self.trialID[idx] = trial
-                #print(part,trial,idx)
                 self.translate(part, trial, idx)
                 self.delta(idx)
                 
