@@ -10,6 +10,9 @@ import json
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import warnings
+
+warnings.filterwarnings("ignore")
 
 class Process():
     def __init__(self, data_folder, timestamp_folder, j_path, time = 23):
@@ -42,6 +45,7 @@ class Process():
             ts_path = row[3]
             
             self.data_array = pd.read_csv(data_path, usecols=["Timestamp","Pupil"]).to_numpy()
+            self.data_array = np.hstack((np.arange(self.data_array.shape[0]).reshape(-1,1), self.data_array))
             
             self.timestamp_times(ts_path)  #Gathers the beginning and end times for each condition
             prev_key = ""
@@ -134,26 +138,32 @@ class Process():
             
         if prev_key == "":
             with np.nditer(self.data_array, flags=['external_loop', 'refs_ok'], order='C') as it:
+                
                 for i,row in enumerate(it):
                     #if type(row[0]) == str or type(start_time) == str:
                         #print(self.ID,key,row[0], start_time)
-                    if row[0] > start_time:
-                        self.data[self.ID][key]["times"]["start_index"] = i
+                    if row[1] > start_time:
+                        self.data[self.ID][key]["times"]["start_index"] = int(row[0])
+                        self.data[self.ID][key]["times"]["start_check"] = self.data_array[int(row[0]),1]
                         break
                 for i,row in enumerate(it):
-                    if row[0] > end_time:
-                        self.data[self.ID][key]["times"]["end_index"] = i
+                    if row[1] > end_time:
+                        self.data[self.ID][key]["times"]["end_index"] = int(row[0])
+                        self.data[self.ID][key]["times"]["end_check"] = self.data_array[int(row[0]),1]
                         break
+                    
         else:
             start_search = self.data[self.ID][prev_key]["times"]["end_index"] + 1
             with np.nditer(self.data_array[start_search:,:], flags=['external_loop', 'refs_ok'], order='C') as it:
                 for i,row in enumerate(it):
-                    if row[0] > start_time:
-                        self.data[self.ID][key]["times"]["start_index"] = i
+                    if row[1] > start_time:
+                        self.data[self.ID][key]["times"]["start_index"] = int(row[0])
+                        self.data[self.ID][key]["times"]["start_check"] = self.data_array[int(row[0]),1]
                         break
                 for i,row in enumerate(it):
-                    if row[0] > end_time:
-                        self.data[self.ID][key]["times"]["end_index"] = i
+                    if row[1] > end_time:
+                        self.data[self.ID][key]["times"]["end_index"] = int(row[0])
+                        self.data[self.ID][key]["times"]["end_check"] = self.data_array[int(row[0]),1]
                         break
         
 A = Process("D:/Research/Kaiyo/Code/Variants/Data/", "D:/Research/Kaiyo/Code/Variants/Data/Timestamps/", "D:/Research/Kaiyo/Code/Variants/Results/", 23)
