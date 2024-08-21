@@ -4,29 +4,24 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import warnings
+from datetime import datetime
 
 warnings.filterwarnings("ignore")
 
 class Process():
-    def __init__(self, data_folder, timestamp_folder, j_path, time = 23):
+    def __init__(self, data_folder, timestamp_folder, results_folder, JSON_out = f"Variant_{datetime.now().date()}.json", error_out = f"Variant_Error_{datetime.now().date()}.txt", time = 5):
         error_list = []
         
         directories, missing_data = self.find_directories(data_folder, timestamp_folder)
         
         error_list += missing_data
         
-        global data
-        data = directories
-        #print(error_list)
-        
         self.data = {}
 
         for i,row in enumerate(tqdm(directories)):
             
             self.ID = str(row[0])+row[1]
-            
-            #self.key_list = ["750 - 800","750 - 400","750 - 200","1000 - 800","1000 - 400","1000 - 200"]
-            
+                        
             self.data[self.ID] = {"750 - 800":{"times":{}},
                               "750 - 400":{"times":{}},
                               "750 - 200":{"times":{}},
@@ -41,16 +36,24 @@ class Process():
             self.data_array = np.hstack((np.arange(self.data_array.shape[0]).reshape(-1,1), self.data_array))
             
             self.key_list = self.timestamp_times(ts_path)  #Gathers the beginning and end times for each condition
+            
+            if len(self.key_list) == 0:
+                del self.data[self.ID]
+                error_list.append(f"{self.ID}: Missing Trials")
+                continue
+            
             prev_key = ""
             for key in self.key_list:
-                self.find_timestamps(key, prev_key)  #Finds all relevant indices given the times gathered previously
+                self.find_timestamps(key, prev_key, time)  #Finds all relevant indices given the times gathered previously
+                self.calculate(key)  #Uses the found indicies to subset data_array and calculate baseline, truncated etc. values
                 prev_key = key
                 
-                
-                
-        global data_dict
-        data_dict = self.data
-                
+            out_file = open(results_folder + JSON_out, "w")
+            json.dump(self.data, out_file, indent = 4)
+            
+            with open(results_folder + error_out, "w") as file:
+                for item in error_list:
+                    file.write(item + "\n")
                 
     def find_directories(self, data, timestamp):
         temp_data_path = os.listdir(data)
@@ -120,8 +123,10 @@ class Process():
                 stimDur = int(row[1])
                 key_list.append(f"{ISI} - {stimDur}")
         
-        global timestamp2
-        timestamp2 = timestamp
+        if len(key_list) != 6:
+            return []
+        
+        self.data[self.ID]["key_order"] = key_list
         
         for key in key_list:
             ISI = int(key.split(" - ")[0])
@@ -136,19 +141,28 @@ class Process():
     
         return key_list    
     
-    def find_timestamps(self, key, prev_key):        
+    def find_timestamps(self, key, prev_key, trunc_time_in):        
         start_time = self.data[self.ID][key]["times"]["start_time"]
         end_time = self.data[self.ID][key]["times"]["end_time"]
-            
+        trunc_time = start_time + trunc_time_in*1000
+        baseline_time = start_time - 5000
+        
         if prev_key == "":
             with np.nditer(self.data_array, flags=['external_loop', 'refs_ok'], order='C') as it:
-                
                 for i,row in enumerate(it):
-                    #if type(row[0]) == str or type(start_time) == str:
-                        #print(self.ID,key,row[0], start_time)
+                    if row[1] > baseline_time:
+                        self.data[self.ID][key]["times"]["baseline_index"] = int(row[0])
+                        self.data[self.ID][key]["times"]["baseline_check"] = self.data_array[int(row[0]),1]
+                        break                    
+                for i,row in enumerate(it):
                     if row[1] > start_time:
                         self.data[self.ID][key]["times"]["start_index"] = int(row[0])
                         self.data[self.ID][key]["times"]["start_check"] = self.data_array[int(row[0]),1]
+                        break
+                for i,row in enumerate(it):
+                    if row[1] > trunc_time:
+                        self.data[self.ID][key]["times"]["trunc_index"] = int(row[0])
+                        self.data[self.ID][key]["times"]["trunc_check"] = self.data_array[int(row[0]),1]
                         break
                 for i,row in enumerate(it):
                     if row[1] > end_time:
@@ -160,9 +174,19 @@ class Process():
             start_search = self.data[self.ID][prev_key]["times"]["end_index"] + 1
             with np.nditer(self.data_array[start_search:,:], flags=['external_loop', 'refs_ok'], order='C') as it:
                 for i,row in enumerate(it):
+                    if row[1] > baseline_time:
+                        self.data[self.ID][key]["times"]["baseline_index"] = int(row[0])
+                        self.data[self.ID][key]["times"]["baseline_check"] = self.data_array[int(row[0]),1]
+                        break                    
+                for i,row in enumerate(it):
                     if row[1] > start_time:
                         self.data[self.ID][key]["times"]["start_index"] = int(row[0])
                         self.data[self.ID][key]["times"]["start_check"] = self.data_array[int(row[0]),1]
+                        break
+                for i,row in enumerate(it):
+                    if row[1] > trunc_time:
+                        self.data[self.ID][key]["times"]["trunc_index"] = int(row[0])
+                        self.data[self.ID][key]["times"]["trunc_check"] = self.data_array[int(row[0]),1]
                         break
                 for i,row in enumerate(it):
                     if row[1] > end_time:
@@ -170,4 +194,25 @@ class Process():
                         self.data[self.ID][key]["times"]["end_check"] = self.data_array[int(row[0]),1]
                         break
         
-A = Process("M:/Research/Kaiyo/Code/Variants/Data/", "M:/Research/Kaiyo/Code/Variants/Data/Timestamps/", "M:/Research/Kaiyo/Code/Variants/Results/", 23)
+    def calculate(self, key):
+        baseline_i = self.data[self.ID][key]["times"]["baseline_index"]
+        start_i = self.data[self.ID][key]["times"]["start_index"]
+        trunc_i = self.data[self.ID][key]["times"]["trunc_index"]
+        end_i = self.data[self.ID][key]["times"]["end_index"]
+        
+        self.data[self.ID][key]["Baseline_Ave"] = np.nanmean(self.data_array[baseline_i:start_i,2])
+        self.data[self.ID][key]["Baseline_Max"] = np.nanmax(self.data_array[baseline_i:start_i,2])
+        
+        self.data[self.ID][key]["Truncated_Ave"] = np.nanmean(self.data_array[trunc_i:end_i,2])
+        self.data[self.ID][key]["Truncated_Max"] = np.nanmax(self.data_array[trunc_i:end_i,2])
+        
+        self.data[self.ID][key]["Total_Ave"] = np.nanmean(self.data_array[start_i:end_i,2])
+        self.data[self.ID][key]["Total_Max"] = np.nanmax(self.data_array[start_i:end_i,2])
+        
+        self.data[self.ID][key]["Average_Difference"] = self.data[self.ID][key]["Total_Ave"] - self.data[self.ID][key]["Baseline_Ave"]
+        self.data[self.ID][key]["Maximum_Difference"] = self.data[self.ID][key]["Total_Max"] - self.data[self.ID][key]["Baseline_Max"]
+        
+# A = Process(data_folder = "D:/Research/Kaiyo/Code/Variants/Data/",
+#             timestamp_folder = "D:/Research/Kaiyo/Code/Variants/Data/Timestamps/",
+#             results_folder= "D:/Research/Kaiyo/Code/Variants/Results/",
+#             time = 5)

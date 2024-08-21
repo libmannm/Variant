@@ -1,10 +1,14 @@
 from datetime import datetime
 
 from Variant_Filter import filterer
-from Variant_Processing import process
-from GazeAOI_Final import VariantFinal
+from Variant_Processing2 import Process
+from Variant_Export2 import variant_final
 
-def variant(data_folder, timestamp_folder, results_folder, time, JSON_Path = f"{datetime.now().date()}.json", CSV_Path = f"{datetime.now().date()}.csv"):
+def variant(data_folder, timestamp_folder, results_folder, 
+            time = 5, 
+            JSON_Path = f"Variant_{datetime.now().date()}.json", 
+            CSV_Path = f"Variant_{datetime.now().date()}.csv", 
+            error_out = f"Variant_Error_{datetime.now().date()}.txt"):
     """
     Calls all of the steps in the processing pipeline from one function
     
@@ -19,16 +23,22 @@ def variant(data_folder, timestamp_folder, results_folder, time, JSON_Path = f"{
     CSV_Path : The name of the file where the CSV output will be stored, must end in .csv
         The default is f"{datetime.now().date()}.csv"
     """
+    
     JSON_Path = results_folder + JSON_Path
     CSV_Path = results_folder + CSV_Path
     
     filterer(data_folder)  ###Creates duplicates of each participant's data that has been reduced to the important features and processed (blinks etc.)
-    data = process(23, data_folder, JSON_Path) ###From the filtered data, assemble and calculate all interesting data; export into an intermediary JSON
-    VariantFinal(JSON_Path, CSV_Path, data_folder, data) ###Conzvert the JSON to a .csv for easier interpretation
+    processed_data = Process(data_folder = data_folder, 
+                   timestamp_folder = timestamp_folder, 
+                   results_folder = results_folder, 
+                   time = 5) ###From the filtered data, assemble and calculate all interesting data; export into an intermediary JSON
+    
+    
+    variant_final(CSV_Path, processed_data.data) ###Conzvert the JSON to a .csv for easier interpretation
 
 
 
 variant(data_folder = "D:/Research/Kaiyo/Code/Variants/Data/",
         timestamp_folder = "D:/Research/Kaiyo/Code/Variants/Data/Timestamps/",
         results_folder = "D:/Research/Kaiyo/Code/Variants/Results/",
-        time = 23)
+        time = 5)
