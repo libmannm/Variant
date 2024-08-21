@@ -16,8 +16,6 @@ def filterer(folder):
             inter = word[:-5]+"filtered.csv"
             if inter not in csvList:       
                 fCsvList.append(word)
-
-    print(len(fCsvList))
     
     for word in tqdm(fCsvList):
         fName = folder+word
