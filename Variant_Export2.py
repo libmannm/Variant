@@ -23,7 +23,6 @@ def variant_final(CSV_out, dictionary):
         part_number = int(ID[:-1])
         letter_code = ID[-1]
         for key in key_list:
-            print(key, key.split(" - "))
             ISI = int(key.split(" - ")[0])
             stimDur = int(key.split(" - ")[1])
             
