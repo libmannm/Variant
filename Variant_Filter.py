@@ -53,7 +53,7 @@ class filtering():
         self.find_blinks()  #Identifies blinks and blink borders from patterns in NaNIndex and adds them to NaNIndex
         self.crop()        
         
-        if self.data[-1] * 0 != 0:
+        if self.data[-1] * 0 != 0: #the pandas interpolate function struggles with edge cases
             self.data[-1] = np.nanmean(self.data)
         
         self.df["Pupil"] = self.data
@@ -84,7 +84,7 @@ class filtering():
     def outliers(self):
         quantile = np.nanquantile(self.data, [0,0.25,0.5,0.75,1])
         IQR = quantile[3]-quantile[1]
-        upper_fence = quantile[3]+2.5*IQR
+        upper_fence = quantile[3]+2.5*IQR #This boundary is intentionally very conservative
         lower_fence = quantile[1]-2.5*IQR
         
         self.NaNIndex = []
@@ -98,6 +98,7 @@ class filtering():
         blink_stop = []
         cu = 0
         
+        #Looks through NaNIndex for between 9 and 100 consecutive NaN values (45ms - 500ms) as generally suggest a blink rather than random error
         for i, NaN in enumerate(self.NaNIndex[:-1]):
             if NaN+1 == self.NaNIndex[i+1] and i < len(self.NaNIndex)-2:
                 cu += 1
@@ -107,6 +108,7 @@ class filtering():
                     blink_start.append(i-cu)
                 cu = 0
                 
+        #Goes through the beginning and end of each blink and filters the immediate data monotonically
         for j in range(len(blink_start)):    
             ind = self.NaNIndex[blink_start[j]]
             pupil_val = self.data[ind]

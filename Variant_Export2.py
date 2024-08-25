@@ -1,6 +1,16 @@
 import pandas as pd
 
 def variant_final(CSV_out, dictionary):
+    """
+    Given data from the provided dictionary, this script reformats the relevant data into a dataframe.  Each participant is given 6 rows, one for each of the 6 variant tasks.  
+    Each row is identified by the participant number, letter code, and two numbers which correspond to parameters of the variant tasks.
+
+    Parameters
+    ----------
+    CSV_out : Path/name of the .csv where the data will be exported to
+    dictionary : A dictionary (as per Variant_Processing2.py) containing the processed data to be exported
+    """
+    
     ID_list = list(dictionary.keys())
     key_list = list(dictionary[ID_list[0]].keys())
     key_list.remove("key_order")

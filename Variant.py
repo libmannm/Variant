@@ -17,7 +17,7 @@ def variant(data_folder, timestamp_folder, results_folder,
     data_folder : The path to the folder with all of the EyeMotions outputs, this is also where the filtered files will go.  It is alright for other files to be in this folder as long as they are not .csv files
     timestamp_folder : The path to the folder containing all of the timestamp data
     results_folder : The path to the folder where the results and error messages will be exported
-    time : The amount of time not used to calculate baseline, see README or article for explanation
+    time : The amount of time (seconds) after the true beginning of the trial before the truncated data starts
     JSON_Path : The name of the file where the JSON will be stored, must end in .json
         The default is f"{datetime.now().date()}.json"
     CSV_Path : The name of the file where the CSV output will be stored, must end in .csv
@@ -34,7 +34,7 @@ def variant(data_folder, timestamp_folder, results_folder,
                    time = 5) ###From the filtered data, assemble and calculate all interesting data; export into an intermediary JSON
     
     
-    variant_final(CSV_Path, processed_data.data) ###Conzvert the JSON to a .csv for easier interpretation
+    variant_final(CSV_Path, processed_data.data) ###Conzvert the JSON to a .csv for easier interpretation/further analysis
 
 
 

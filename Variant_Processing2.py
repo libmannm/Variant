@@ -9,10 +9,10 @@ from datetime import datetime
 warnings.filterwarnings("ignore")
 
 class Process():
-    def __init__(self, data_folder, timestamp_folder, results_folder, JSON_out = f"Variant_{datetime.now().date()}.json", error_out = f"Variant_Error_{datetime.now().date()}.txt", time = 5):
-        error_list = []
+    def __init__(self, data_folder, timestamp_folder, results_folder, JSON_out = f"Variant_{datetime.now().date()}.json", error_out = f"Variant_Error_{datetime.now().date()}.txt", time = 5): #time refers to time in seconds after the start of the trial before the beginning of the truncated period
+        error_list = [] #Where error messages will be stored and later saved as a .txt
         
-        directories, missing_data = self.find_directories(data_folder, timestamp_folder)
+        directories, missing_data = self.find_directories(data_folder, timestamp_folder) #Formats directories and checks what is and isn't present
         
         error_list += missing_data
         
@@ -20,7 +20,7 @@ class Process():
 
         for i,row in enumerate(tqdm(directories)):
             
-            self.ID = str(row[0])+row[1]
+            self.ID = str(row[0])+row[1]  #i.e. 103J
                         
             self.data[self.ID] = {"750 - 800":{"times":{}},
                               "750 - 400":{"times":{}},
@@ -33,7 +33,7 @@ class Process():
             ts_path = row[3]
             
             self.data_array = pd.read_csv(data_path, usecols=["Timestamp","Pupil"]).to_numpy()
-            self.data_array = np.hstack((np.arange(self.data_array.shape[0]).reshape(-1,1), self.data_array))
+            self.data_array = np.hstack((np.arange(self.data_array.shape[0]).reshape(-1,1), self.data_array))  #Add an index column
             
             self.key_list = self.timestamp_times(ts_path)  #Gathers the beginning and end times for each condition
             
@@ -67,7 +67,7 @@ class Process():
         
         missing_data = []
         
-        directories = np.empty([218,4],dtype = object)
+        directories = np.empty([218,4],dtype = object) # columns: participant number, letter code (I or J), data path, timestamp path
         
         i = 0
         
@@ -78,6 +78,7 @@ class Process():
                 temp_data_path = ""
                 temp_ts_path = ""
                 
+                #Find each data file and then pair with the corresponding timestamp file
                 for path in data_path:      
                     if code in path and number_code in path:
                         temp_data_path = path
@@ -107,17 +108,17 @@ class Process():
         return directories, missing_data
     
     def timestamp_times(self, ts_path):
-        try:
+        try: #There were inconsistencies with the naming of certain columns in the original data
             timestamp = pd.read_csv(ts_path, usecols=["TrialISI","StimDur","arrow_disp.started", "arrow_disp.stopped"]).to_numpy()
         except:
             timestamp = pd.read_csv(ts_path, usecols=["TrialISI","StimDur","letter_disp.started", "letter_disp.stopped"]).to_numpy()
         
-        timestamp = timestamp[(timestamp[:,0]*0 == 0) & (timestamp[:,2] != "None")]
+        timestamp = timestamp[(timestamp[:,0]*0 == 0) & (timestamp[:,2] != "None")] #Filters for missing rows and NaN values
         
         key_list = []
         ISI = 0
         stimDur = 0
-        for row in timestamp:
+        for row in timestamp:  #Important for subsequent searches that this list be made in the order that it was recorded in data
             if row[0] != ISI or row[1] != stimDur:
                 ISI = int(row[0])
                 stimDur = int(row[1])
@@ -132,10 +133,8 @@ class Process():
             ISI = int(key.split(" - ")[0])
             stimDur = int(key.split(" - ")[1])
 
-            timestamp_subset = timestamp[(timestamp[:,0] == ISI) & (timestamp[:,1] == stimDur)]
-            
-            #print(timestamp_subset[:,2],type(np.min(timestamp_subset[:,2])), np.min(timestamp_subset[:,2]), "\n\n\n\n")
-            
+            timestamp_subset = timestamp[(timestamp[:,0] == ISI) & (timestamp[:,1] == stimDur)] #Supset all the timestamp data corresponding to a given trial identifier
+
             self.data[self.ID][key]["times"]["start_time"] = np.min(timestamp_subset[:,2].astype(float))*1000
             self.data[self.ID][key]["times"]["end_time"] = np.max(timestamp_subset[:,3].astype(float))*1000
     
@@ -147,6 +146,7 @@ class Process():
         trunc_time = start_time + trunc_time_in*1000
         baseline_time = start_time - 5000
         
+        #Find all relevant times per identifier in the EyeMotions data (baseline start, trial start, truncated start, trial end)
         if prev_key == "":
             with np.nditer(self.data_array, flags=['external_loop', 'refs_ok'], order='C') as it:
                 for i,row in enumerate(it):
@@ -169,7 +169,8 @@ class Process():
                         self.data[self.ID][key]["times"]["end_index"] = int(row[0])
                         self.data[self.ID][key]["times"]["end_check"] = self.data_array[int(row[0]),1]
                         break
-                    
+        
+        #To avoid repeatedly searching the same data, the for loop restarts after the known end point of the previous trial - This is why key_list must be in order
         else:
             start_search = self.data[self.ID][prev_key]["times"]["end_index"] + 1
             with np.nditer(self.data_array[start_search:,:], flags=['external_loop', 'refs_ok'], order='C') as it:
@@ -211,7 +212,8 @@ class Process():
         
         self.data[self.ID][key]["Average_Difference"] = self.data[self.ID][key]["Total_Ave"] - self.data[self.ID][key]["Baseline_Ave"]
         self.data[self.ID][key]["Maximum_Difference"] = self.data[self.ID][key]["Total_Max"] - self.data[self.ID][key]["Baseline_Max"]
-        
+
+# Example call:        
 # A = Process(data_folder = "D:/Research/Kaiyo/Code/Variants/Data/",
 #             timestamp_folder = "D:/Research/Kaiyo/Code/Variants/Data/Timestamps/",
 #             results_folder= "D:/Research/Kaiyo/Code/Variants/Results/",
