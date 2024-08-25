@@ -1,6 +1,6 @@
 # Variant
 
-Developed as part of TK, this series of scripts processes a combination of raw data from an EyeMotions tracker and defined experimental parameters to output data for later statistical analysis.  In particular, these scripts calculate pupil size metrics across different experimental conditions.  While these scripts were designed for a specific task, the modules and methods are more broadly useful.
+Developed as part of TK, this series of scripts processes a combination of raw data from an EyeMotions tracker and defined experimental parameters to output data for later statistical analysis.  In particular, these scripts calculate pupil size metrics across different experimental conditions.  While these scripts were designed for a specific task, the modules and methods may be more broadly applicable.
 
 ## Prerequisite Folder Organization & Input Format
 
