@@ -6,12 +6,18 @@ Developed as part of TK, this series of scripts processes a combination of raw d
 
 The script requires the existence of 3 designated folders containing the EyeMotions data (data_folder), the trial parameter data (timestamp_folder), and eventually the results (results_folder).  These folders do not need to be in a particular order (no required nesting etc.).  As a result, it may be helpful to define folders in the script with global paths.  Having the 2 data folders contain only their respective files is also recommended. 
 
-<ins>Folder Contents</ins>
+<ins>Data Folder Contents</ins>
 - data_folder/EyeMotions
   - Naming: Should all be .csv files with the naming scheme "{index number}_{participant number}CE {Letter or Arrow} {mm-dd-yy} {hours}h{minutes}m.csv" i.e. 001_109CE Letter 03-08-22 14h22m.csv
   - File characteristics:
     - The file should contain approximately 30 lines of header ending with the line "#DATA"
     - Among others, the file should contain the columns "Timestamp", "ET_PupilLeft", and "ET_PupilRight" in the row immediately under "#DATA"
+- timestamp_folder
+  - Naming: Should all be .csv files with the naming scheme "{Arrow or Letter}_{Arrow or Letter}RV_{participant number}CE_{number}_{number}_{y}_{mon.}_{d}_{4 digit num}.csv" i.e. Arrow_ArrowRV_2CE_4_1_2020_Jan_22_1701.csv
+  - File characteristics:
+    - This file should have no headers
+    - In particular the file should contain the columns: "TrialISI", "StimDur", "arrow_disp.started", and "arrow_disp.stopped" (letter is interchangeable for arrow)
+    - There should be six total unique combinations of TrialISI and StimDur, which should each be seperated from one another by a single blank row
 
 ## Script Output
 The script will output 3 files: two files of processed data (a .csv and a .json) and a .txt that tracks any errors throughout the processing pipeline.  By default, these files are all named as derivatives of the date the script was run, so it is recommended to provide the script with alternative specific names if you plan on running the script multiple times on a given day.
