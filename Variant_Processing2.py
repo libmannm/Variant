@@ -1,111 +1,49 @@
-import os
-import json
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
 import warnings
-from datetime import datetime
 
 warnings.filterwarnings("ignore")
 
 class Process():
-    def __init__(self, data_folder, timestamp_folder, results_folder, JSON_out = f"Variant_{datetime.now().date()}.json", error_out = f"Variant_Error_{datetime.now().date()}.txt", time = 5): #time refers to time in seconds after the start of the trial before the beginning of the truncated period
-        error_list = [] #Where error messages will be stored and later saved as a .txt
-        
-        directories, missing_data = self.find_directories(data_folder, timestamp_folder) #Formats directories and checks what is and isn't present
-        
-        error_list += missing_data
+    def __init__(self, data, row, time = 5): #time refers to time in seconds after the start of the trial before the beginning of the truncated period
         
         self.data = {}
 
-        for i,row in enumerate(tqdm(directories)):
+        #for i,row in enumerate(tqdm(directories)):
             
-            self.ID = str(row[0])+row[1]  #i.e. 103J
-                        
-            self.data[self.ID] = {"750 - 800":{"times":{}},
-                              "750 - 400":{"times":{}},
-                              "750 - 200":{"times":{}},
-                              "1000 - 800":{"times":{}},
-                              "1000 - 400":{"times":{}},
-                              "1000 - 200":{"times":{}}}
-            
-            data_path = row[2]
-            ts_path = row[3]
-            
-            self.data_array = pd.read_csv(data_path, usecols=["Timestamp","Pupil"]).to_numpy()
-            self.data_array = np.hstack((np.arange(self.data_array.shape[0]).reshape(-1,1), self.data_array))  #Add an index column
-            
-            self.key_list = self.timestamp_times(ts_path)  #Gathers the beginning and end times for each condition
-            
-            if len(self.key_list) == 0:
-                del self.data[self.ID]
-                error_list.append(f"{self.ID}: Missing Trials")
-                continue
-            
-            prev_key = ""
-            for key in self.key_list:
-                self.find_timestamps(key, prev_key, time)  #Finds all relevant indices given the times gathered previously
-                self.calculate(key)  #Uses the found indicies to subset data_array and calculate baseline, truncated etc. values
-                prev_key = key
-                
-            out_file = open(results_folder + JSON_out, "w")
-            json.dump(self.data, out_file, indent = 4)
-            
-            with open(results_folder + error_out, "w") as file:
-                for item in error_list:
-                    file.write(item + "\n")
-                
-    def find_directories(self, data, timestamp):
-        temp_data_path = os.listdir(data)
-        data_path = []
+        self.ID = str(row[0])+row[1]  #i.e. 103J
+                    
+        self.data[self.ID] = {"750 - 800":{"times":{}},
+                          "750 - 400":{"times":{}},
+                          "750 - 200":{"times":{}},
+                          "1000 - 800":{"times":{}},
+                          "1000 - 400":{"times":{}},
+                          "1000 - 200":{"times":{}}}
         
-        for file_path in temp_data_path:
-            if "filter" in file_path and ".csv" in file_path:
-                data_path.append(file_path)
+        ts_path = row[3]
         
-        ts_path = os.listdir(timestamp)
+        #self.data_array = pd.read_csv(data_path, usecols=["Timestamp","Pupil"]).to_numpy()
+        self.data_array = data[["Timestamp","Pupil"]].to_numpy()
+        self.data_array = np.hstack((np.arange(self.data_array.shape[0]).reshape(-1,1), self.data_array))  #Add an index column
         
-        missing_data = []
+        self.key_list = self.timestamp_times(ts_path)  #Gathers the beginning and end times for each condition
         
-        directories = np.empty([218,4],dtype = object) # columns: participant number, letter code (I or J), data path, timestamp path
+        self.check = False
+        if len(self.key_list) == 0:
+            del self.data[self.ID]
+            self.error_line = f"{self.ID}: Missing Trials"
+            return
+        self.check = True
         
-        i = 0
+        self.NaN_list = data[["NaN"]]
         
-        for code in ["Arrow", "Letter"]:
-            letter_code = {"Arrow":"I", "Letter": "J"}
-            for number in range(1,110):
-                number_code = "_" + str(number) + "CE"
-                temp_data_path = ""
-                temp_ts_path = ""
-                
-                #Find each data file and then pair with the corresponding timestamp file
-                for path in data_path:      
-                    if code in path and number_code in path:
-                        temp_data_path = path
-                        break
-                
-                for path in ts_path:
-                    if code in path and number_code in path:
-                        temp_ts_path = path
-                        break
-                
-                if temp_data_path != "" and temp_ts_path != "":
-                    directories[number-1+i, 0] = number
-                    directories[number-1+i, 1] = letter_code[code]
-                    directories[number-1+i, 2] = data + temp_data_path
-                    directories[number-1+i, 3] = timestamp + temp_ts_path
-                else:
-                    directories[number-1+i,0] = 99999
-                    if temp_data_path == "" and temp_ts_path == "":
-                        missing_data.append(f"{number}{code}: Missing Data and Timestamp")
-                    elif temp_data_path == "":
-                        missing_data.append(f"{number}{code}: Missing Data")
-                    else:
-                        missing_data.append(f"{number}{code}: Missing Timestamp")
-            i = 109
-            
-        directories = directories[directories[:,0]!=99999]
-        return directories, missing_data
+        prev_key = ""
+        for key in self.key_list:
+            self.find_timestamps(key, prev_key, time)  #Finds all relevant indices given the times gathered previously
+            self.calculate(key)  #Uses the found indicies to subset data_array and calculate baseline, truncated etc. values
+            prev_key = key
+        
+        self.error_count()
     
     def timestamp_times(self, ts_path):
         try: #There were inconsistencies with the naming of certain columns in the original data
@@ -201,6 +139,8 @@ class Process():
         trunc_i = self.data[self.ID][key]["times"]["trunc_index"]
         end_i = self.data[self.ID][key]["times"]["end_index"]
         
+        self.data[self.ID][key]["times"]["length"] = end_i - start_i
+        
         self.data[self.ID][key]["Baseline_Ave"] = np.nanmean(self.data_array[baseline_i:start_i,2])
         self.data[self.ID][key]["Baseline_Max"] = np.nanmax(self.data_array[baseline_i:start_i,2])
         
@@ -212,9 +152,20 @@ class Process():
         
         self.data[self.ID][key]["Average_Difference"] = self.data[self.ID][key]["Total_Ave"] - self.data[self.ID][key]["Baseline_Ave"]
         self.data[self.ID][key]["Maximum_Difference"] = self.data[self.ID][key]["Total_Max"] - self.data[self.ID][key]["Baseline_Max"]
-
-# Example call:        
-# A = Process(data_folder = "D:/Research/Kaiyo/Code/Variants/Data/",
-#             timestamp_folder = "D:/Research/Kaiyo/Code/Variants/Data/Timestamps/",
-#             results_folder= "D:/Research/Kaiyo/Code/Variants/Results/",
-#             time = 5)
+        
+        self.data[self.ID][key]["NaN_Rate"] = {}
+        NaN_count = int(np.sum(self.NaN_list[start_i:end_i]))
+        self.data[self.ID][key]["NaN_Rate"]["count"] = NaN_count
+        self.data[self.ID][key]["NaN_Rate"]["ratio"] = float(NaN_count/(end_i - start_i))
+    
+    def error_count(self):
+        NaNs = 0
+        length = 0
+        for key in self.key_list:
+            NaNs = NaNs + self.data[self.ID][key]["NaN_Rate"]["count"]
+            length = length + self.data[self.ID][key]["times"]["length"]
+        
+        self.data[self.ID]["Error"] = {}
+        self.data[self.ID]["Error"]["Total_Length"] = length
+        self.data[self.ID]["Error"]["NaNs"] = NaNs
+        self.data[self.ID]["Error"]["Ratio"] = NaNs/length

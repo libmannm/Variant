@@ -1,43 +1,78 @@
 import pandas as pd
 import numpy as np
 import os
-from tqdm import tqdm
 import warnings
 
 warnings.filterwarnings("ignore")  #The atypical formatting of the EyeMotions data results in a variety of inconsequential intake errors
 
-def filterer(folder):
-    ###Makes sure all files are there, and then passes to the next step
-    csvList = os.listdir(folder)
-
-    fCsvList = []
-    for word in csvList:
-        if ".csv" in word and "filtered" not in word:  #Checks that the file has not already been filtered
-            inter = word[:-5]+"filtered.csv"
-            if inter not in csvList:       
-                fCsvList.append(word)
+def find_directories(data_folder, timestamp_folder):
+    temp_data_path = os.listdir(data_folder)
+    data_path = []
     
-    for word in tqdm(fCsvList):
-        fName = folder+word
-        expName = fName[:-5] + "filtered2.csv"
+    for file_path in temp_data_path:
+        if ".csv" in file_path and "filter" not in file_path:
+            data_path.append(file_path)
+    
+    ts_path = os.listdir(timestamp_folder)
+    
+    missing_data = []
+    
+    directories = np.empty([218,4],dtype = object) # columns: participant number, letter code (I or J), data path, timestamp path
+    
+    i = 0
+    
+    for code in ["Arrow", "Letter"]:
+        letter_code = {"Arrow":"I", "Letter": "J"}
+        for number in range(1,110):
+            number_code = "_" + str(number) + "CE"
+            temp_data_path = ""
+            temp_ts_path = ""
+            
+            #Find each data file and then pair with the corresponding timestamp file
+            for path in data_path:      
+                if code in path and number_code in path:
+                    temp_data_path = path
+                    break
+            
+            for path in ts_path:
+                if code in path and number_code in path:
+                    temp_ts_path = path
+                    break
+            
+            if temp_data_path != "" and temp_ts_path != "":
+                directories[number-1+i, 0] = number
+                directories[number-1+i, 1] = letter_code[code]
+                directories[number-1+i, 2] = data_folder + temp_data_path
+                directories[number-1+i, 3] = timestamp_folder + temp_ts_path
+            else:
+                directories[number-1+i,0] = 99999
+                if temp_data_path == "" and temp_ts_path == "":
+                    missing_data.append(f"{number}{code}: Missing Data and Timestamp")
+                elif temp_data_path == "":
+                    missing_data.append(f"{number}{code}: Missing Data")
+                else:
+                    missing_data.append(f"{number}{code}: Missing Timestamp")
+        i = 109
+        
+    directories = directories[directories[:,0]!=99999]
+    return directories, missing_data   
+    
+def filterer(data_file):
+    df = pd.read_csv(data_file, usecols = [0]).to_numpy()
+    
+    for i,j in enumerate(df):
+        if j == "#DATA":
+            break
+    
+    i = i+2  #Establish where the header ends and data begins
 
-        df = pd.read_csv(fName, usecols = [0]).to_numpy()
-        
-        for i,j in enumerate(df):
-            if j == "#DATA":
-                break
-        
-        i = i+2  #Establish where the header ends and data begins
+    data = pd.read_csv(data_file, skiprows = i, usecols=["Timestamp","ET_PupilLeft","ET_PupilRight"]).to_numpy()
 
-        data = pd.read_csv(fName, skiprows = i, usecols=["Timestamp","ET_PupilLeft","ET_PupilRight"]).to_numpy()
-
-        data = data[data[:,1]*0 == 0]  #Ensures no blank rows are included
-        data = data[data[:,2]*0 == 0]
-        
-        A = filtering(data)
-        df3 = A.returner()
-        
-        df3.to_csv(expName,index=False)
+    data = data[data[:,1]*0 == 0]  #Ensures no blank rows are included
+    data = data[data[:,2]*0 == 0]
+    
+    A = filtering(data)
+    return A.df
     
 
 class filtering():
@@ -47,6 +82,12 @@ class filtering():
         self.size = np.shape(self.data)[0]
         
         self.lrmerge() #Averages left and right eye sizes into one column
+        
+        self.NaNs = []
+        for i,j in enumerate(self.data):
+            if j*0 != 0:
+                self.NaNs.append(i)
+        
         self.outliers() #Finds outliers via IQR and marks them for deletion
         self.crop()  #Actually deletes data that has been marked for deletion in the past steps
         
@@ -55,11 +96,14 @@ class filtering():
         
         if self.data[-1] * 0 != 0: #the pandas interpolate function struggles with edge cases
             self.data[-1] = np.nanmean(self.data)
+        if self.data[0] * 0 != 0:
+            self.data[0] = np.nanmean(self.data)
+        
+        self.NaNArray()
         
         self.df["Pupil"] = self.data
         self.df["Pupil"] = self.df["Pupil"].interpolate(method = "pchip") #pchip was qualitatively the best and most consistent
-        
-        self.returner()
+        self.df["NaN"] = self.nan_array
         
     def lrmerge(self):
         #EyeMotions stores invalid measurements as -1
@@ -120,12 +164,20 @@ class filtering():
         for j in range(len(blink_stop)):    
             ind = self.NaNIndex[blink_stop[j]]
             pupil_val = self.data[ind]
-            while self.onoCompare(pupil_val,ind+1):
+            while self.monoCompare(pupil_val,ind+1):
                 self.NaNIndex.append(ind)
                 ind += 1
                 pupil_val = self.data[ind]
-
     
+    def NaNArray(self):
+        self.nan_array = np.zeros_like(self.data)
+        self.NaNIndex = self.NaNIndex + self.NaNs
+        # global NaNs
+        # NaNs = self.NaNIndex
+        
+        for i in self.NaNIndex:
+            self.nan_array[i] = 1
+        
     def crop(self):
         for j in self.NaNIndex:
             self.data[j] = np.nan
@@ -137,8 +189,3 @@ class filtering():
             return False
         else:
             return True
-
-
-
-    def returner(self):
-        return(self.df)
