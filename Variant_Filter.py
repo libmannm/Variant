@@ -3,14 +3,14 @@ import numpy as np
 import os
 import warnings
 
-warnings.filterwarnings("ignore")  #The atypical formatting of the EyeMotions data results in a variety of inconsequential intake errors
+warnings.filterwarnings("ignore")  #The formatting of the EyeMotions data files results in a variety of inconsequential intake errors
 
 def find_directories(data_folder, timestamp_folder):
     temp_data_path = os.listdir(data_folder)
     data_path = []
     
     for file_path in temp_data_path:
-        if ".csv" in file_path and "filter" not in file_path:
+        if ".csv" in file_path:
             data_path.append(file_path)
     
     ts_path = os.listdir(timestamp_folder)
@@ -99,11 +99,11 @@ class filtering():
         if self.data[0] * 0 != 0:
             self.data[0] = np.nanmean(self.data)
         
-        self.NaNArray()
+        self.NaNArray() #Finds total number of NaN's per participant and per trial to be used for error columns
         
         self.df["Pupil"] = self.data
         self.df["Pupil"] = self.df["Pupil"].interpolate(method = "pchip") #pchip was qualitatively the best and most consistent
-        self.df["NaN"] = self.nan_array
+        self.df["NaN"] = self.nan_array #If pupil was at any point a NaN at a certain index, the value of this column at that index will be 1
         
     def lrmerge(self):
         #EyeMotions stores invalid measurements as -1
@@ -172,8 +172,6 @@ class filtering():
     def NaNArray(self):
         self.nan_array = np.zeros_like(self.data)
         self.NaNIndex = self.NaNIndex + self.NaNs
-        # global NaNs
-        # NaNs = self.NaNIndex
         
         for i in self.NaNIndex:
             self.nan_array[i] = 1

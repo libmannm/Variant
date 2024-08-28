@@ -28,10 +28,15 @@ class Process():
         
         self.key_list = self.timestamp_times(ts_path)  #Gathers the beginning and end times for each condition
         
-        self.check = False
+        self.check = False #This variable tells Variant.py if an error occured or not
         if len(self.key_list) == 0:
             del self.data[self.ID]
             self.error_line = f"{self.ID}: Missing Trials"
+            return
+        
+        if np.nanmean(data["Pupil"])*0 != 0:
+            del self.data[self.ID]
+            self.error_line = f"{self.ID}: All pupil values invalid"
             return
         self.check = True
         

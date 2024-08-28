@@ -31,16 +31,16 @@ def variant(data_folder, timestamp_folder, results_folder,
     CSV_Path = results_folder + CSV_Path
     
     directories, error_list  = find_directories(data_folder, timestamp_folder)
-    
+
     dictionary = {}
     
     for row in tqdm(directories):
-        data_file = row[2]
         
-        df = filterer(data_file)  ###Creates duplicates of each participant's data that has been reduced to the important features and processed (blinks etc.)
+        data_file = row[2]
+        df = filterer(data_file)
         processed_data = Process(data = df, 
                        row = row, 
-                       time = 5) ###From the filtered data, assemble and calculate all interesting data; export into an intermediary JSON
+                       time = 5) ###From the filtered data, assemble and calculate all interesting data; store in an intermediary JSON
         
         if processed_data.check == True:
             dictionary.update(processed_data.data)
@@ -59,7 +59,7 @@ def variant(data_folder, timestamp_folder, results_folder,
     
     return(dictionary)
     
-a = variant(data_folder = "M:/Research/Kaiyo/Code/Variants/Data/",
-        timestamp_folder = "M:/Research/Kaiyo/Code/Variants/Data/Timestamps/",
-        results_folder = "M:/Research/Kaiyo/Code/Variants/Results/",
+a = variant(data_folder = "D:/Research/Kaiyo/Code/Variants/Data/",
+        timestamp_folder = "D:/Research/Kaiyo/Code/Variants/Data/Timestamps/",
+        results_folder = "D:/Research/Kaiyo/Code/Variants/Results/",
         time = 5)
