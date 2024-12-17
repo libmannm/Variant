@@ -16,8 +16,8 @@ The script requires the existence of 3 designated folders containing the EyeMoti
   - Naming: Should all be .csv files with the naming scheme "{Arrow or Letter}_{Arrow or Letter}RV_{participant number}CE_{number}_{number}_{y}_{mon.}_{d}_{4 digit num}.csv" i.e. Arrow_ArrowRV_2CE_4_1_2020_Jan_22_1701.csv
   - File characteristics:
     - This file should have no headers
-    - In particular the file should contain the columns: "TrialISI", "StimDur", "arrow_disp.started", and "arrow_disp.stopped" (letter is interchangeable for arrow)
-    - There should be six total unique combinations of TrialISI and StimDur, which should each be seperated from one another by a single blank row
+    - In particular, the file should contain the columns: "TrialISI", "StimDur", "arrow_disp.started", and "arrow_disp.stopped" (letter is interchangeable for arrow)
+    - There should be six total unique combinations of TrialISI and StimDur, which should each be separated from one another by a single blank row
 
 ## Script Output
 The script will output 3 files: two files of processed data (a .csv and a .json) and a .txt that tracks any errors throughout the processing pipeline.  By default, these files are all named as derivatives of the date the script was run, so it is recommended to provide the script with alternative specific names if you plan on running the script multiple times on a given day.
@@ -32,11 +32,11 @@ The script will output 3 files: two files of processed data (a .csv and a .json)
 
 
 ## Running the Script
-From this repository, it should only be necessary to interact with the script "Variant.py".  Once all variables and folder paths are defined in Variant.py, it will call all necessary classes and functions from the other scripts.  It is important though to ensure that all scripts are available to your environment.  This can usually be done by simply keeping all scripts in the same folder.  This script is intended to be run in an IDE rather than on a command line. However, it is well structured for adaptation to a callable script if it fits your needs.
+From this repository, it should only be necessary to interact with the script "Variant.py".  Once all variables and folder paths are defined in Variant.py, it will call all necessary classes and functions from the other scripts.  It is important to ensure that all scripts are available to your environment.  This can usually be done by keeping all scripts in the same folder.  This script is intended to be run in an IDE rather than on a command line. However, it is well structured for adaptation to a callable script if it fits your needs.
 
 <ins>General Process</ins>
 
-1. Gather the raw pupil data from the EyeMotions files, filter them for outliers and blinks, average the pupil values, and store as a "filtered" .csv.
+1. Gather the raw pupil data from the EyeMotions files, filter them for outliers and blinks, and average the pupil values.
 2. Using the timestamp files, locate the beginning and end of each trial for each participant within the filtered data.
 3. Calculate all wanted metrics from these data subsets.
 4. From this data (the .json) reformat the relevant information into a .csv.
