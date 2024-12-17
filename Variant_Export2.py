@@ -31,6 +31,7 @@ def variant_final(CSV_out, dictionary):
     max_diff_col = []
     trial_error = []
     participant_error = []
+    blinks = []
     
     for ID in ID_list:
         part_number = int(ID[:-1])
@@ -52,6 +53,7 @@ def variant_final(CSV_out, dictionary):
             truncated_max_col.append(dictionary[ID][key]["Truncated_Max"])
             average_diff_col.append(dictionary[ID][key]["Average_Difference"])
             max_diff_col.append(dictionary[ID][key]["Maximum_Difference"])
+            blinks.append(dictionary[ID][key]["blinks"])
             trial_error.append(dictionary[ID][key]["NaN_Rate"]["ratio"]*100)
             participant_error.append(dictionary[ID]["Error"]["Ratio"]*100)
             
@@ -67,7 +69,10 @@ def variant_final(CSV_out, dictionary):
                               "Truncated_Maximum": truncated_max_col,
                               "Average_Difference": average_diff_col,
                               "Maximum_Difference": max_diff_col,
+                              "Blinks": blinks,
                               "Trial_NaN": trial_error,
                               "Participant_NaN": participant_error})
     
     df.to_csv(CSV_out, index = False)
+    
+    return(df)

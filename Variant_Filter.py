@@ -104,6 +104,7 @@ class filtering():
         self.df["Pupil"] = self.data
         self.df["Pupil"] = self.df["Pupil"].interpolate(method = "pchip") #pchip was qualitatively the best and most consistent
         self.df["NaN"] = self.nan_array #If pupil was at any point a NaN at a certain index, the value of this column at that index will be 1
+        self.df["Blink"] = self.blink_count #Used in next step to manually count each blink via the blink's midpoint
         
     def lrmerge(self):
         #EyeMotions stores invalid measurements as -1
@@ -153,6 +154,8 @@ class filtering():
                 cu = 0
                 
         #Goes through the beginning and end of each blink and filters the immediate data monotonically
+        blink_inds = np.zeros([len(blink_start),3])
+        
         for j in range(len(blink_start)):    
             ind = self.NaNIndex[blink_start[j]]
             pupil_val = self.data[ind]
@@ -160,6 +163,7 @@ class filtering():
                 self.NaNIndex.append(ind)
                 ind = ind - 1
                 pupil_val = self.data[ind]
+            blink_inds[j,0] = ind
             
         for j in range(len(blink_stop)):    
             ind = self.NaNIndex[blink_stop[j]]
@@ -168,7 +172,15 @@ class filtering():
                 self.NaNIndex.append(ind)
                 ind += 1
                 pupil_val = self.data[ind]
-    
+            blink_inds[j,1] = ind
+        
+        for j in blink_inds:
+            j[2] = round((j[0]+j[1])/2)
+        
+        self.blink_count = np.zeros_like(self.data)
+        for j in blink_inds[:,2]:
+            self.blink_count[int(j)] = 1
+        
     def NaNArray(self):
         self.nan_array = np.zeros_like(self.data)
         self.NaNIndex = self.NaNIndex + self.NaNs

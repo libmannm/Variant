@@ -41,6 +41,7 @@ class Process():
         self.check = True
         
         self.NaN_list = data[["NaN"]]
+        self.blinks = data[["Blink"]]
         
         prev_key = ""
         for key in self.key_list:
@@ -162,6 +163,9 @@ class Process():
         NaN_count = int(np.sum(self.NaN_list[start_i:end_i]))
         self.data[self.ID][key]["NaN_Rate"]["count"] = NaN_count
         self.data[self.ID][key]["NaN_Rate"]["ratio"] = float(NaN_count/(end_i - start_i))
+        
+        self.data[self.ID][key]["blinks"] = int(np.sum(self.blinks[start_i:end_i]))
+
     
     def error_count(self):
         NaNs = 0
